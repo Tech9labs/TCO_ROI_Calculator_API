@@ -21,6 +21,7 @@ jobs:
         with:
           repository: tech9-HQ/TCO_ROI_Calculator
           path: _frontend
+          token: ${{ secrets.GH_PAT }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
