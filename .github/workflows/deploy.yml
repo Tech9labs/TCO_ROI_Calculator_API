@@ -19,7 +19,7 @@ jobs:
       - name: Checkout frontend
         uses: actions/checkout@v4
         with:
-          repository: tech9-HQ/TCO_ROI_Calculator
+          repository: Tech9labs/TCO_ROI_Calculator
           path: _frontend
           token: ${{ secrets.GH_PAT }}
 
