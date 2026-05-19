@@ -4,7 +4,7 @@ import { runCalculator } from '../engine/calculator';
 
 const router = Router();
 
-const behaviourEnum = z.enum(['CAPEX_ONE_TIME', 'INFLATED_FROM_START', 'INFLATED_FROM_YEAR', 'RECURRING_FLAT']);
+const behaviourEnum = z.enum(['CAPEX_ONE_TIME', 'INFLATED_FROM_START', 'INFLATED_FROM_YEAR', 'RECURRING_FLAT', 'CUSTOM']);
 
 const lineItemInputSchema = z.object({
   name:                z.string(),
@@ -24,7 +24,7 @@ const assumptionsSchema = z.object({
   currency:                z.string(),
   reportDate:              z.string(),
   analysisPeriodYears:     z.number().int().min(1).max(10),
-  numberOfUsers:           z.number().int().min(1),
+  numberOfUsers:           z.number().int().min(0),
   discountRate:            z.number().min(0).max(1),
   annualOpexInflationRate: z.number().min(0).max(1),
   corporateTaxRate:        z.number().min(0).max(1),

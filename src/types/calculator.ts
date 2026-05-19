@@ -1,4 +1,4 @@
-export type Behaviour = 'CAPEX_ONE_TIME' | 'INFLATED_FROM_START' | 'INFLATED_FROM_YEAR' | 'RECURRING_FLAT';
+export type Behaviour = 'CAPEX_ONE_TIME' | 'INFLATED_FROM_START' | 'INFLATED_FROM_YEAR' | 'RECURRING_FLAT' | 'CUSTOM';
 
 export interface LineItemInput {
   name: string;

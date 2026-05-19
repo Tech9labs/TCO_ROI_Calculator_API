@@ -16,7 +16,7 @@ export function calcFinancialKpis(
   }
 
   const avgAnnualSaving = years > 0 ? grossSavings / years : 0;
-  const simplePaybackYears = avgAnnualSaving > 0 ? solATotalByYear[0] / avgAnnualSaving : Infinity;
+  const simplePaybackYears = avgAnnualSaving > 0 ? solATotalByYear[0] / avgAnnualSaving : years + 1;
 
   let cumDiscounted = 0;
   let discountedPaybackYears = years + 1;

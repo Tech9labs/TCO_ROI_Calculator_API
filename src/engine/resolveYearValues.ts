@@ -1,4 +1,4 @@
-export type Behaviour = 'CAPEX_ONE_TIME' | 'INFLATED_FROM_START' | 'INFLATED_FROM_YEAR' | 'RECURRING_FLAT';
+export type Behaviour = 'CAPEX_ONE_TIME' | 'INFLATED_FROM_START' | 'INFLATED_FROM_YEAR' | 'RECURRING_FLAT' | 'CUSTOM';
 
 export function resolveYearValues(
   rate: number,
@@ -24,6 +24,10 @@ export function resolveYearValues(
   } else if (behaviour === 'RECURRING_FLAT') {
     const base = rate * qty;
     for (let y = 0; y < years; y++) vals[y] = base;
+  } else if (behaviour === 'CUSTOM') {
+    for (let y = 1; y <= years; y++) {
+      vals[y - 1] = manualOverrides?.[y] ?? 0;
+    }
   } else if (behaviour === 'INFLATED_FROM_YEAR') {
     const start = startYear ?? 1;
     for (let y = 1; y < start; y++) {

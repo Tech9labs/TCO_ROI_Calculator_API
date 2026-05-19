@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -7,6 +8,9 @@ import { requestLogger } from "./middleware/requestLogger";
 import { errorHandler } from "./middleware/errorHandler";
 import healthRouter from "./routes/health";
 import calculatorRouter from "./routes/calculator";
+import authRouter from "./routes/auth";
+import savedRouter from "./routes/savedCalculations";
+import adminRouter from "./routes/admin";
 
 const app = express();
 
@@ -19,8 +23,11 @@ app.use(requestLogger);
 app.use(express.json());
 
 // API Routes
-app.use("/api", healthRouter);
+app.use("/api/health", healthRouter);
 app.use("/api/v1", calculatorRouter);
+app.use("/api/auth", authRouter);
+app.use("/api/saved", savedRouter);
+app.use("/api/admin", adminRouter);
 
 // Serve React frontend static build
 const publicPath = path.join(__dirname, "..", "public");
