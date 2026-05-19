@@ -66,6 +66,29 @@ router.get("/:id", async (req: Request, res: Response): Promise<void> => {
   });
 });
 
+// PUT /api/saved/:id — update an existing calculation (SUPER_ADMIN: any; others: own only)
+router.put("/:id", async (req: Request, res: Response): Promise<void> => {
+  const data = saveSchema.parse(req.body);
+
+  const row = await db.calculation.findUnique({ where: { id: req.params.id } });
+  if (!row) { res.status(404).json({ error: "Not found" }); return; }
+
+  const isOwner      = row.userId === req.user!.userId;
+  const isSuperAdmin = req.user!.role === "SUPER_ADMIN";
+  if (!isOwner && !isSuperAdmin) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  const updated = await db.calculation.update({
+    where: { id: req.params.id },
+    data: {
+      title:   data.title,
+      payload: JSON.stringify(data.payload),
+      result:  data.result ? JSON.stringify(data.result) : null,
+    },
+  });
+
+  res.json({ id: updated.id, title: updated.title, updatedAt: updated.updatedAt });
+});
+
 // DELETE /api/saved/:id — SUPER_ADMIN: any; ADMIN: own only; USER: blocked
 router.delete("/:id", async (req: Request, res: Response): Promise<void> => {
   const role = req.user!.role;
