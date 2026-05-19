@@ -48,6 +48,9 @@ jobs:
       - name: Build backend
         run: npm run build
 
+      - name: Copy Prisma client into dist/
+        run: cp -r src/generated/prisma dist/generated/prisma
+
       - name: Deploy to Azure App Service
         uses: azure/webapps-deploy@v3
         with:
