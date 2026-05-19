@@ -38,11 +38,15 @@ export interface Assumptions {
 
   // Power & cooling — Solution A (Proposed)
   ratedPowerSolAWatts: number;
+  powerUtilizationSolA: number;    // % of rated power actually used, e.g. 70
+  hoursPerDaySolA: number;         // hours powered on per day, e.g. 24
   powerTariffSolA: number;         // per kWh
   pueCoolingFactorSolA: number;    // e.g. 1.15
 
   // Power & cooling — Solution B (Existing)
   ratedPowerSolBWatts: number;
+  powerUtilizationSolB: number;
+  hoursPerDaySolB: number;
   powerTariffSolB: number;
   pueCoolingFactorSolB: number;
 
