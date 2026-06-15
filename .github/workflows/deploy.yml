@@ -85,10 +85,11 @@ jobs:
               --registry-secret ibm-cr-secret \
               --port 3000 \
               --min-scale 1 \
-              --env DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+              --env DATABASE_URL="${{ secrets.DATABASE_URL }}?sslmode=require" \
               --env JWT_SECRET="${{ secrets.JWT_SECRET }}" \
               --env ADMIN_EMAIL="${{ secrets.ADMIN_EMAIL }}" \
-              --env NODE_ENV=production
+              --env NODE_ENV=production \
+              --no-wait
           else
             ibmcloud ce application create \
               --name ${{ env.IMAGE_NAME }} \
@@ -96,8 +97,9 @@ jobs:
               --registry-secret ibm-cr-secret \
               --port 3000 \
               --min-scale 1 \
-              --env DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+              --env DATABASE_URL="${{ secrets.DATABASE_URL }}?sslmode=require" \
               --env JWT_SECRET="${{ secrets.JWT_SECRET }}" \
               --env ADMIN_EMAIL="${{ secrets.ADMIN_EMAIL }}" \
-              --env NODE_ENV=production
+              --env NODE_ENV=production \
+              --no-wait
           fi
