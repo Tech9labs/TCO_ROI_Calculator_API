@@ -56,7 +56,7 @@ jobs:
           ibmcloud plugin install code-engine -f
 
       - name: Login to IBM Cloud
-        run: ibmcloud login --apikey ${{ secrets.IBM_CLOUD_API_KEY }} -r ${{ env.IBM_REGION }}
+        run: ibmcloud login --apikey ${{ secrets.IBM_CLOUD_API_KEY }} -r ${{ env.IBM_REGION }} -g tco_calculator
 
       - name: Login to IBM Container Registry & push image
         run: |
