@@ -1,4 +1,4 @@
-name: Build & Deploy to Azure App Service
+name: Build & Deploy to IBM Cloud Code Engine
 
 on:
   push:
@@ -7,6 +7,9 @@ on:
 
 env:
   NODE_VERSION: '22'
+  IBM_REGION: jp-tok
+  IBM_CR_HOSTNAME: jp.icr.io
+  IMAGE_NAME: tco-calculator
 
 jobs:
   build-and-deploy:
@@ -39,23 +42,61 @@ jobs:
           mkdir -p public
           cp -r _frontend/dist/. public/
 
-      - name: Install backend dependencies
-        run: npm ci
-
-      - name: Generate Prisma client
-        run: npx prisma generate
-
-      - name: Build backend
-        run: npm run build
-
-      - name: Copy Prisma client into dist/
+      - name: Build Docker image
         run: |
-          mkdir -p dist/generated
-          cp -r src/generated/prisma dist/generated/prisma
+          docker build -t ${{ env.IBM_CR_HOSTNAME }}/${{ secrets.IBM_CR_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ github.sha }} .
+          docker tag \
+            ${{ env.IBM_CR_HOSTNAME }}/${{ secrets.IBM_CR_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            ${{ env.IBM_CR_HOSTNAME }}/${{ secrets.IBM_CR_NAMESPACE }}/${{ env.IMAGE_NAME }}:latest
 
-      - name: Deploy to Azure App Service
-        uses: azure/webapps-deploy@v3
-        with:
-          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: .
+      - name: Install IBM Cloud CLI & plugins
+        run: |
+          curl -fsSL https://clis.cloud.ibm.com/install/linux | sh
+          ibmcloud plugin install container-registry -f
+          ibmcloud plugin install code-engine -f
+
+      - name: Login to IBM Cloud
+        run: ibmcloud login --apikey ${{ secrets.IBM_CLOUD_API_KEY }} -r ${{ env.IBM_REGION }}
+
+      - name: Login to IBM Container Registry & push image
+        run: |
+          ibmcloud cr login
+          docker push ${{ env.IBM_CR_HOSTNAME }}/${{ secrets.IBM_CR_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push ${{ env.IBM_CR_HOSTNAME }}/${{ secrets.IBM_CR_NAMESPACE }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Create registry secret in Code Engine (idempotent)
+        run: |
+          ibmcloud ce project select --name ${{ secrets.IBM_CE_PROJECT }}
+          ibmcloud ce registry create \
+            --name ibm-cr-secret \
+            --server ${{ env.IBM_CR_HOSTNAME }} \
+            --username iamapikey \
+            --password ${{ secrets.IBM_CLOUD_API_KEY }} 2>/dev/null || true
+
+      - name: Deploy to IBM Cloud Code Engine
+        run: |
+          ibmcloud ce project select --name ${{ secrets.IBM_CE_PROJECT }}
+
+          if ibmcloud ce application get --name ${{ env.IMAGE_NAME }} > /dev/null 2>&1; then
+            ibmcloud ce application update \
+              --name ${{ env.IMAGE_NAME }} \
+              --image ${{ env.IBM_CR_HOSTNAME }}/${{ secrets.IBM_CR_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+              --registry-secret ibm-cr-secret \
+              --port 3000 \
+              --min-scale 1 \
+              --env DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+              --env JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+              --env ADMIN_EMAIL="${{ secrets.ADMIN_EMAIL }}" \
+              --env NODE_ENV=production
+          else
+            ibmcloud ce application create \
+              --name ${{ env.IMAGE_NAME }} \
+              --image ${{ env.IBM_CR_HOSTNAME }}/${{ secrets.IBM_CR_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+              --registry-secret ibm-cr-secret \
+              --port 3000 \
+              --min-scale 1 \
+              --env DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+              --env JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+              --env ADMIN_EMAIL="${{ secrets.ADMIN_EMAIL }}" \
+              --env NODE_ENV=production
+          fi
