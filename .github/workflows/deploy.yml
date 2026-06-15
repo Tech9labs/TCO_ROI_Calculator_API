@@ -60,6 +60,7 @@ jobs:
 
       - name: Login to IBM Container Registry & push image
         run: |
+          ibmcloud cr region-set global
           ibmcloud cr login
           docker push ${{ env.IBM_CR_HOSTNAME }}/${{ secrets.IBM_CR_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push ${{ env.IBM_CR_HOSTNAME }}/${{ secrets.IBM_CR_NAMESPACE }}/${{ env.IMAGE_NAME }}:latest
