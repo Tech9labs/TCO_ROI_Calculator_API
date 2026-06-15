@@ -8,7 +8,7 @@ on:
 env:
   NODE_VERSION: '22'
   IBM_REGION: jp-tok
-  IBM_CR_HOSTNAME: jp.icr.io
+  IBM_CR_HOSTNAME: icr.io
   IMAGE_NAME: tco-calculator
 
 jobs:
