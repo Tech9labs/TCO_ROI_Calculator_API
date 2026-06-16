@@ -96,7 +96,7 @@ jobs:
               --registry-secret ibm-cr-secret \
               --port 3000 \
               --min-scale 1 \
-              --env DATABASE_URL="${{ secrets.DATABASE_URL }}?sslmode=require" \
+              --env DATABASE_URL="${{ secrets.DATABASE_URL }}" \
               --env JWT_SECRET="${{ secrets.JWT_SECRET }}" \
               --env ADMIN_EMAIL="${{ secrets.ADMIN_EMAIL }}" \
               --env NODE_ENV=production \
@@ -108,7 +108,7 @@ jobs:
               --registry-secret ibm-cr-secret \
               --port 3000 \
               --min-scale 1 \
-              --env DATABASE_URL="${{ secrets.DATABASE_URL }}?sslmode=require" \
+              --env DATABASE_URL="${{ secrets.DATABASE_URL }}" \
               --env JWT_SECRET="${{ secrets.JWT_SECRET }}" \
               --env ADMIN_EMAIL="${{ secrets.ADMIN_EMAIL }}" \
               --env NODE_ENV=production \
