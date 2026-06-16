@@ -8,12 +8,15 @@ on:
 env:
   NODE_VERSION: '22'
   IBM_REGION: jp-tok
-  IBM_CR_HOSTNAME: icr.io
-  IMAGE_NAME: tco-calculator
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/tco-calculator
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout backend
@@ -42,55 +45,45 @@ jobs:
           mkdir -p public
           cp -r _frontend/dist/. public/
 
-      - name: Build Docker image
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push Docker image
         run: |
-          docker build -t ${{ env.IBM_CR_HOSTNAME }}/${{ secrets.IBM_CR_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ github.sha }} .
-          docker tag \
-            ${{ env.IBM_CR_HOSTNAME }}/${{ secrets.IBM_CR_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-            ${{ env.IBM_CR_HOSTNAME }}/${{ secrets.IBM_CR_NAMESPACE }}/${{ env.IMAGE_NAME }}:latest
+          docker build -t ${{ env.IMAGE_NAME }}:${{ github.sha }} -t ${{ env.IMAGE_NAME }}:latest .
+          docker push ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push ${{ env.IMAGE_NAME }}:latest
 
       - name: Install IBM Cloud CLI & plugins
         run: |
           curl -fsSL https://clis.cloud.ibm.com/install/linux | sh
-          ibmcloud plugin install container-registry -f
           ibmcloud plugin install code-engine -f
 
       - name: Login to IBM Cloud
         run: ibmcloud login --apikey ${{ secrets.IBM_CLOUD_API_KEY }} -r ${{ env.IBM_REGION }} -g tco_calculator
 
-      - name: Login to IBM Container Registry & push image
-        run: |
-          ibmcloud cr region-set global
-          ibmcloud cr login
-          docker push ${{ env.IBM_CR_HOSTNAME }}/${{ secrets.IBM_CR_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          docker push ${{ env.IBM_CR_HOSTNAME }}/${{ secrets.IBM_CR_NAMESPACE }}/${{ env.IMAGE_NAME }}:latest
-
-      - name: Clean up old images (keep latest only)
-        run: |
-          ibmcloud cr region-set global
-          OLD_IMAGES=$(ibmcloud cr images --restrict ${{ secrets.IBM_CR_NAMESPACE }}/${{ env.IMAGE_NAME }} --format "{{.Repository}}:{{.Tag}}" 2>/dev/null | grep -v ":latest" | grep -v ":${{ github.sha }}" || true)
-          if [ -n "$OLD_IMAGES" ]; then
-            echo "$OLD_IMAGES" | xargs -r ibmcloud cr image-rm
-          fi
-
-      - name: Create registry secret in Code Engine (idempotent)
+      - name: Create GitHub registry secret in Code Engine (idempotent)
         run: |
           ibmcloud ce project select --name ${{ secrets.IBM_CE_PROJECT }}
           ibmcloud ce registry create \
-            --name ibm-cr-secret \
-            --server ${{ env.IBM_CR_HOSTNAME }} \
-            --username iamapikey \
-            --password ${{ secrets.IBM_CLOUD_API_KEY }} 2>/dev/null || true
+            --name ghcr-secret \
+            --server ghcr.io \
+            --username ${{ github.actor }} \
+            --password ${{ secrets.GH_PAT }} 2>/dev/null || true
 
       - name: Deploy to IBM Cloud Code Engine
         run: |
           ibmcloud ce project select --name ${{ secrets.IBM_CE_PROJECT }}
 
-          if ibmcloud ce application get --name ${{ env.IMAGE_NAME }} > /dev/null 2>&1; then
+          if ibmcloud ce application get --name tco-calculator > /dev/null 2>&1; then
             ibmcloud ce application update \
-              --name ${{ env.IMAGE_NAME }} \
-              --image ${{ env.IBM_CR_HOSTNAME }}/${{ secrets.IBM_CR_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-              --registry-secret ibm-cr-secret \
+              --name tco-calculator \
+              --image ${{ env.IMAGE_NAME }}:${{ github.sha }} \
+              --registry-secret ghcr-secret \
               --port 3000 \
               --min-scale 1 \
               --env DATABASE_URL="${{ secrets.DATABASE_URL }}?sslmode=require" \
@@ -100,9 +93,9 @@ jobs:
               --no-wait
           else
             ibmcloud ce application create \
-              --name ${{ env.IMAGE_NAME }} \
-              --image ${{ env.IBM_CR_HOSTNAME }}/${{ secrets.IBM_CR_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-              --registry-secret ibm-cr-secret \
+              --name tco-calculator \
+              --image ${{ env.IMAGE_NAME }}:${{ github.sha }} \
+              --registry-secret ghcr-secret \
               --port 3000 \
               --min-scale 1 \
               --env DATABASE_URL="${{ secrets.DATABASE_URL }}?sslmode=require" \
