@@ -10,14 +10,19 @@ router.use(requireAuth, requireAdmin);
 
 // GET /api/admin/users
 router.get("/users", async (_req: Request, res: Response): Promise<void> => {
-  const users = await db.user.findMany({
-    select: {
-      id: true, name: true, email: true, role: true, createdAt: true,
-      _count: { select: { calculations: true } },
-    },
-    orderBy: { createdAt: "asc" },
-  });
-  res.json({ users });
+  try {
+    const users = await db.user.findMany({
+      select: {
+        id: true, name: true, email: true, role: true, createdAt: true,
+        _count: { select: { calculations: true } },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+    res.json({ users });
+  } catch (err: any) {
+    console.error("GET /admin/users error:", err.message);
+    res.status(500).json({ error: "Failed to fetch users" });
+  }
 });
 
 const createSchema = z.object({
@@ -29,20 +34,25 @@ const createSchema = z.object({
 
 // POST /api/admin/users
 router.post("/users", async (req: Request, res: Response): Promise<void> => {
-  const data = createSchema.parse(req.body);
+  try {
+    const data = createSchema.parse(req.body);
 
-  const exists = await db.user.findUnique({ where: { email: data.email } });
-  if (exists) {
-    res.status(409).json({ error: "Email already registered" });
-    return;
+    const exists = await db.user.findUnique({ where: { email: data.email } });
+    if (exists) {
+      res.status(409).json({ error: "Email already registered" });
+      return;
+    }
+
+    const hashed = await bcrypt.hash(data.password, 10);
+    const user = await db.user.create({
+      data: { name: data.name, email: data.email, password: hashed, role: data.role },
+      select: { id: true, name: true, email: true, role: true, createdAt: true },
+    });
+    res.status(201).json({ user });
+  } catch (err: any) {
+    console.error("POST /admin/users error:", err.message);
+    res.status(500).json({ error: "Failed to create user" });
   }
-
-  const hashed = await bcrypt.hash(data.password, 10);
-  const user = await db.user.create({
-    data: { name: data.name, email: data.email, password: hashed, role: data.role },
-    select: { id: true, name: true, email: true, role: true, createdAt: true },
-  });
-  res.status(201).json({ user });
 });
 
 const updateSchema = z.object({

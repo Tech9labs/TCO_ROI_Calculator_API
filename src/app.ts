@@ -33,6 +33,11 @@ app.use("/api/admin", adminRouter);
 const publicPath = path.join(__dirname, "..", "public");
 app.use(express.static(publicPath));
 
+// Return JSON 404 for unmatched /api/* routes (prevents React HTML from confusing clients)
+app.all("/api/*", (_req, res) => {
+  res.status(404).json({ error: "API endpoint not found" });
+});
+
 // Catch-all: return index.html for client-side routing (React Router)
 app.get("*", (_req, res) => {
   res.sendFile(path.join(publicPath, "index.html"));
