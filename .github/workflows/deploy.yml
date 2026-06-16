@@ -65,6 +65,14 @@ jobs:
           docker push ${{ env.IBM_CR_HOSTNAME }}/${{ secrets.IBM_CR_NAMESPACE }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push ${{ env.IBM_CR_HOSTNAME }}/${{ secrets.IBM_CR_NAMESPACE }}/${{ env.IMAGE_NAME }}:latest
 
+      - name: Clean up old images (keep latest only)
+        run: |
+          ibmcloud cr region-set global
+          OLD_IMAGES=$(ibmcloud cr images --restrict ${{ secrets.IBM_CR_NAMESPACE }}/${{ env.IMAGE_NAME }} --format "{{.Repository}}:{{.Tag}}" 2>/dev/null | grep -v ":latest" | grep -v ":${{ github.sha }}" || true)
+          if [ -n "$OLD_IMAGES" ]; then
+            echo "$OLD_IMAGES" | xargs -r ibmcloud cr image-rm
+          fi
+
       - name: Create registry secret in Code Engine (idempotent)
         run: |
           ibmcloud ce project select --name ${{ secrets.IBM_CE_PROJECT }}
